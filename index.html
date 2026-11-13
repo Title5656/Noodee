@@ -284,6 +284,7 @@
       aspect-ratio: 4 / 3;
       transition: transform 0.9s cubic-bezier(0.22, 0.9, 0.3, 1);
     }
+    .envelope:not(.is-opening) .letter-small { visibility: hidden; }
     .is-letter-out .letter-small { transform: translateY(-45%); }
 
     /* ---------------------------------------------------------
@@ -403,7 +404,7 @@
     }
 
     /* =========================================================
-       จดหมายใหญ่กลางจอ (เป็น <button> กดซ้ำเพื่อระเบิดอีกรอบได้)
+       จดหมายใหญ่กลางจอ (กดเพื่อปิดจดหมาย)
        ========================================================= */
     .letter-stage {
       position: absolute;
@@ -502,7 +503,8 @@
     <main class="scene">
 
       <!-- ซองจดหมาย: ชื่อปุ่มสำหรับ screen reader อ่านจากข้อความ "ลองเปิดดูสิ" -->
-      <button class="envelope" type="button" aria-labelledby="hint-text">
+      <button class="envelope" type="button" aria-labelledby="hint-text"
+              aria-controls="letter-stage" aria-expanded="false">
 
         <!-- ชั้น 0: ด้านในซอง (เห็นตอนเปิด) -->
         <svg class="env-part env-back" viewBox="0 0 300 200" aria-hidden="true">
@@ -584,8 +586,8 @@
       </div>
 
       <!-- จดหมายใหญ่กลางจอ (ซ่อนไว้จนกว่าจะเปิดซอง) -->
-      <div class="letter-stage" hidden>
-        <button class="letter-big" type="button">
+      <div class="letter-stage" id="letter-stage" hidden>
+        <button class="letter-big" type="button" title="กดเพื่อปิดจดหมาย">
           <span class="paper">
             <span class="tape" aria-hidden="true"></span>
             <svg class="doodle doodle--corner" viewBox="0 0 24 22" aria-hidden="true"><path d="M12 20.5C12 20.5 1.8 14 1.8 7.4 1.8 4.1 4.3 1.8 7.2 1.8c2 0 3.8 1.1 4.8 2.8 1-1.7 2.8-2.8 4.8-2.8 2.9 0 5.4 2.3 5.4 5.6C22.2 14 12 20.5 12 20.5Z"/></svg>
@@ -633,6 +635,7 @@
        ========================================================= */
     const lid = document.querySelector('.lid');
     let lidFrameQueued = false;
+    let previousProgress = 0;
 
     function updateLid() {
       lidFrameQueued = false;
@@ -640,6 +643,8 @@
       const progress = Math.min(Math.max(window.scrollY / lidHeight, 0), 1);
       lid.style.setProperty('--lift', progress.toFixed(3));
       document.body.classList.toggle('is-revealed', progress > 0.7);
+      if (progress < previousProgress && progress <= 0.7) closeEnvelope();
+      previousProgress = progress;
     }
 
     // อัปเดตไม่เกิน 1 ครั้งต่อเฟรม (กันกระตุก)
@@ -653,29 +658,38 @@
 
     // เปิดหน้าใหม่ให้เริ่มจากฝาเสมอ (ไม่ให้เบราว์เซอร์จำตำแหน่งเดิม ซึ่งจะทำให้เสียเซอร์ไพรส์)
     if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-    window.scrollTo(0, 0);
-    updateLid();
 
     /* =========================================================
        ส่วนที่ 2: ซองจดหมาย
-       สถานะ: closed (ยังไม่เปิด) → opening (กำลังเล่นแอนิเมชัน) → open (เปิดแล้ว)
+       การเปิดแต่ละครั้งมีตัวอ้างอิงของตัวเอง เพื่อยกเลิกได้ระหว่างเล่นแอนิเมชัน
        ========================================================= */
     const envelope = document.querySelector('.envelope');
     const smallLetter = document.querySelector('.letter-small');
     const letterStage = document.querySelector('.letter-stage');
     const bigLetter = document.querySelector('.letter-big');
     const hint = document.querySelector('.hint');
-    let state = 'closed';
+    let opening = null;
 
     // <button> รองรับ Enter / Space จากคีย์บอร์ดอยู่แล้ว จึงฟังแค่ click
     envelope.addEventListener('click', () => {
-      if (state === 'closed') openEnvelope();
-      else if (state === 'open') burstFrom(mouthOf(envelope));
+      if (opening) closeEnvelope();
+      else openEnvelope();
     });
 
-    bigLetter.addEventListener('click', () => {
-      if (state === 'open') burstFrom(pointIn(bigLetter, 0.5, 0.35));
-    });
+    bigLetter.addEventListener('click', closeEnvelope);
+
+    function closeEnvelope() {
+      if (!opening) return;
+
+      opening.animation?.cancel();
+      opening = null;
+      letterStage.hidden = true;
+      smallLetter.style.removeProperty('visibility');
+      envelope.classList.remove('is-opening', 'is-letter-out');
+      envelope.setAttribute('aria-expanded', 'false');
+      hint.classList.remove('is-hidden');
+      if (document.activeElement === bigLetter) envelope.focus({ preventScroll: true });
+    }
 
     // ตำแหน่งปากซอง (จุดที่ลูกโป่ง/หัวใจพุ่งออกมา)
     function mouthOf(el) {
@@ -696,28 +710,33 @@
 
     // ลำดับการเปิดซอง (หัวใจของหน้านี้)
     async function openEnvelope() {
-      state = 'opening';
+      const currentOpening = {};
+      opening = currentOpening;
+      envelope.setAttribute('aria-expanded', 'true');
       revealScene();
 
       // 1) ตราประทับหาย + ฝาซองพับเปิด
       envelope.classList.add('is-opening');
       hint.classList.add('is-hidden');
       await wait(timing(720));
+      if (opening !== currentOpening) return;
 
       // 2) ฝาไปอยู่หลังจดหมาย + จดหมายค่อย ๆ เลื่อนขึ้นจากซอง
       envelope.classList.add('is-letter-out');
       await wait(timing(260));
+      if (opening !== currentOpening) return;
 
       // 3) ลูกโป่งกับหัวใจระเบิดออกจากซอง
       burstFrom(mouthOf(envelope));
       await wait(timing(700));
+      if (opening !== currentOpening) return;
 
       // 4) จดหมายขยายขึ้นมากลางจอ
-      await expandLetter();
+      currentOpening.animation = expandLetter();
+      await currentOpening.animation.finished.catch(() => {});
 
-      state = 'open';
-      // ย้าย focus ไปที่จดหมาย: screen reader จะอ่านข้อความ และกด Enter ซ้ำเพื่อระเบิดได้
-      bigLetter.focus({ preventScroll: true });
+      // ย้าย focus ไปที่จดหมายเพื่ออ่านและกดปิดได้ด้วยคีย์บอร์ด
+      if (opening === currentOpening) bigLetter.focus({ preventScroll: true });
     }
 
     /* ---------------------------------------------------------
@@ -775,7 +794,7 @@
         );
       }
 
-      return animation.finished.catch(() => {});
+      return animation;
     }
 
     /* =========================================================
@@ -970,6 +989,8 @@
         ).finished.then(() => el.remove());
       }
     }
+    window.scrollTo(0, 0);
+    updateLid();
   })();
   </script>
 </body>
