@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#d9ecfb">
+  <title>สวัสดี หนูดี</title>
+
+  <!-- ฟอนต์ Mali: ลายมือน่ารัก รองรับภาษาไทย (โหลดแค่ 2 น้ำหนักที่ใช้จริง) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Mali:wght@500;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* =========================================================
+       ตัวแปรสี: ใช้ตามพาเลตต์ที่กำหนดเท่านั้น
+       ========================================================= */
+    :root {
+      --sky: #d9ecfb;     /* ฟ้าอ่อน - พื้นฝา */
+      --ink: #23305a;     /* น้ำเงินเข้ม - ตัวอักษรและเส้นวาดทุกเส้น */
+      --berry: #d63b6e;   /* ชมพูเบอร์รี่ - หัวใจ / ตราประทับ */
+      --butter: #ffd966;  /* เหลืองเนย - แท่งขอบฝา */
+      --mint: #8ed8c0;    /* มิ้นต์ - เทปกาว / ลายซับในซอง */
+      --blush: #ffe3ea;   /* ชมพูอ่อน - พื้นฉาก */
+      --paper: #fffdf8;   /* ขาวนวล - ซอง / จดหมาย */
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    /* กันหน้าเลื่อนข้าง: html ใช้ hidden (ส่งต่อไปที่ viewport, ไม่ทำให้ sticky พัง)
+       body ใช้ clip ซึ่งไม่สร้าง scroll container ใหม่ */
+    html {
+      background: var(--blush);
+      overflow-x: hidden;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Mali', 'Leelawadee UI', 'Thonburi', sans-serif;
+      font-weight: 500;
+      color: var(--ink);
+      overflow-x: clip;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* =========================================================
+       โครงหลัก: .stage ห่อทั้งฝาและฉาก
+       - .lid (ฝา) อยู่ในลำดับปกติ สูง 100svh → เลื่อนขึ้นตาม scroll ของเบราว์เซอร์เอง
+         (เป็น native scroll จึงลื่นที่สุด ไม่ต้องใช้ JS ขยับฝา)
+       - .scene (ฉาก) ดึงขึ้นไปซ้อนใต้ฝาด้วย margin-top ติดลบ แล้ว sticky ค้างไว้
+       - .runway คือพื้นที่ให้เลื่อน เผื่อเงาใต้ฝาให้พ้นจอด้วย
+       ========================================================= */
+    .stage { position: relative; }
+
+    .runway {
+      height: calc(100vh + 72px);   /* fallback สำหรับเบราว์เซอร์เก่า */
+      height: calc(100lvh + 72px);  /* ใช้ lvh เพื่อให้ฝาพ้นจอแน่นอนแม้แถบที่อยู่ของมือถือจะหดลง */
+    }
+
+    /* ---------------------------------------------------------
+       ฝา (หน้าแรก)
+       --------------------------------------------------------- */
+    .lid {
+      position: relative;
+      z-index: 10;
+      height: 100vh;
+      height: 100svh;
+      background: var(--sky);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px 20px 70px; /* เผื่อพื้นที่ด้านล่างให้แท่งเหลือง */
+    }
+
+    /* หัวข้อใหญ่: เอียงนิดหน่อยให้รู้สึกเขียนมือ */
+    .lid-title {
+      margin: 0;
+      font-weight: 700;
+      font-size: clamp(3.2rem, 17vw, 7.5rem);
+      line-height: 1.3;
+      rotate: -3deg;
+    }
+    /* แต่ละคำไม่ตัดกลางคำ: บนมือถือจะขึ้นบรรทัดใหม่ตรงช่องว่างพอดี */
+    .lid-title span {
+      display: inline-block;
+      white-space: nowrap;
+    }
+
+    .lid-sub {
+      margin: 1.4em 0 0.5em;
+      font-size: clamp(1.05rem, 4.6vw, 1.35rem);
+      rotate: 1.5deg;
+    }
+
+    /* ลูกศรชี้ลง: จุดดึงสายตาจุดที่ 1 (เด้งเบา ๆ) */
+    .lid-arrow {
+      width: 40px;
+      height: 56px;
+      margin-left: 14px; /* เยื้องจากกึ่งกลางนิดหน่อย ไม่ให้ดูเป๊ะแบบเทมเพลต */
+      animation: bob 1.8s ease-in-out infinite;
+    }
+    @keyframes bob {
+      0%, 100% { translate: 0 0; }
+      50%      { translate: 0 9px; }
+    }
+
+    /* แท่งเหลืองหนา ๆ ที่ขอบล่างของฝา + เส้นประเหมือนรอยเย็บ */
+    .lid-bar {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 26px;
+      background: var(--butter);
+      border-top: 2.5px solid var(--ink);
+      border-bottom: 2.5px solid var(--ink);
+    }
+    .lid-bar::before {
+      content: '';
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      top: 50%;
+      border-top: 2px dashed rgba(35, 48, 90, 0.45);
+    }
+
+    /* เงาที่ตกลงบนฉากด้านล่าง
+       --lift (0 ถึง 1) มาจาก JS: ยิ่งยกฝาสูง เงายิ่งยาวและเข้ม เหมือนฝาลอยห่างจากกล่อง
+       ใช้ transform/opacity เท่านั้น (ทำงานบน compositor ไม่ทำให้กระตุก) */
+    .lid-shadow {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 100%;
+      height: 56px;
+      pointer-events: none;
+      background: linear-gradient(
+        to bottom,
+        rgba(35, 48, 90, 0.38),
+        rgba(35, 48, 90, 0.12) 35%,
+        rgba(35, 48, 90, 0)
+      );
+      transform-origin: top;
+      transform: scaleY(calc(0.4 + var(--lift, 0) * 0.7));
+      opacity: calc(0.55 + var(--lift, 0) * 0.45);
+      will-change: transform, opacity;
+    }
+
+    /* ---------------------------------------------------------
+       ฉากด้านล่าง (sticky เต็มจอ)
+       --------------------------------------------------------- */
+    .scene {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      height: 100vh;
+      height: 100svh;
+      margin-top: -100vh;
+      margin-top: -100svh;
+      background: var(--blush);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      overflow: clip;
+    }
+
+    /* =========================================================
+       ซองจดหมาย (<button>)
+       ประกอบด้วยชั้นซ้อนกัน (z-index จากหลังไปหน้า):
+       0 ด้านในซอง → 2 จดหมาย → 3 กระเป๋าหน้าซอง → 4 ฝาซอง → 5 ตราประทับ
+       ========================================================= */
+    .envelope {
+      /* ความกว้างซอง: ไม่เกิน 74% ของจอ, ไม่เกิน 340px, และไม่สูงเกินจอแนวนอน */
+      --w: min(74vw, 340px, calc((100svh - 150px) * 0.95));
+      position: relative;
+      z-index: 1; /* สร้าง stacking context ของตัวเอง */
+      width: var(--w);
+      aspect-ratio: 3 / 2;
+      margin-top: calc(var(--w) * 0.32); /* เผื่อที่ให้ฝาซองตอนพับเปิดขึ้น */
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;          /* กันซูมเมื่อแตะรัว ๆ บนมือถือ */
+      -webkit-tap-highlight-color: transparent;
+      perspective: 1000px;                 /* ให้ฝาซองพับแบบมีมิติ */
+      transform-origin: 50% 85%;
+    }
+
+    /* focus ที่เห็นชัดเมื่อใช้คีย์บอร์ด (เส้นประเหมือนวาดมือ) */
+    .envelope:focus-visible,
+    .letter-big:focus-visible {
+      outline: 3px dashed var(--ink);
+      outline-offset: 10px;
+      border-radius: 10px;
+    }
+
+    /* จุดดึงสายตาจุดที่ 2: ซองสั่นเบา ๆ เป็นระยะ (สั่น ~0.7 วิ แล้วพัก)
+       เริ่มเมื่อฝาเปิดพ้นแล้ว (body.is-revealed) และหยุดทันทีเมื่อกดเปิด */
+    body.is-revealed .envelope:not(.is-opening) {
+      animation: nudge 3.4s ease-in-out 0.4s infinite;
+    }
+    @keyframes nudge {
+      0%, 72%, 100% { rotate: 0deg; }
+      76% { rotate: -4deg; }
+      80% { rotate: 3.5deg; }
+      84% { rotate: -2.5deg; }
+      88% { rotate: 1.5deg; }
+      92% { rotate: 0deg; }
+    }
+
+    /* ทุกชั้นของซองวางทับกันเต็มกรอบเดียวกัน */
+    .env-part {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      overflow: visible;
+    }
+    .env-back   { z-index: 0; }
+    .env-pocket { z-index: 3; }
+
+    /* ฝาซอง: พับรอบขอบบน (ประมาณ 2% จากด้านบน = ขอบบนของซองใน SVG)
+       มีสองหน้า: ด้านนอกขาวนวล / ด้านในเป็นลายจุดซับใน */
+    .env-flap {
+      z-index: 4;
+      transform-style: preserve-3d;
+      transform-origin: 50% 2%;
+      transition: transform 0.6s cubic-bezier(0.55, 0, 0.3, 1) 0.12s;
+    }
+    .flap-face {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+    .flap-face--inside { transform: rotateY(180deg); }
+
+    .is-opening .env-flap { transform: rotateX(180deg); }
+    /* พอฝาพับเสร็จ ย้ายไปอยู่หลังจดหมาย จดหมายจะได้เลื่อนขึ้นมาข้างหน้าฝา */
+    .is-letter-out .env-flap { z-index: 1; }
+
+    /* ตราประทับหัวใจ: อยู่ที่ปลายฝาซอง */
+    .env-seal {
+      position: absolute;
+      z-index: 5;
+      left: 50%;
+      top: 60%;
+      width: 20%;
+      aspect-ratio: 1;
+      margin: -10% 0 0 -10%; /* margin % อิงความกว้าง จึงจัดกึ่งกลางได้ทั้งสองแกน */
+      rotate: -10deg;
+    }
+    .env-seal svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+    /* ตราประทับเด้งนิดนึงแล้วหายไป ก่อนที่ฝาจะพับ */
+    .is-opening .env-seal { animation: seal-off 0.32s ease-in forwards; }
+    @keyframes seal-off {
+      0%   { transform: scale(1); }
+      35%  { transform: scale(1.18); }
+      100% { transform: scale(0); opacity: 0; }
+    }
+
+    /* จดหมายเล็กที่อยู่ในซอง
+       กว้าง 80% ของซอง สัดส่วน 4:3 → สูง 90% ของซอง ซ่อนอยู่ในซองพอดี */
+    .letter-small {
+      position: absolute;
+      z-index: 2;
+      left: 10%;
+      top: 6%;
+      width: 80%;
+      aspect-ratio: 4 / 3;
+      transition: transform 0.9s cubic-bezier(0.22, 0.9, 0.3, 1);
+    }
+    .is-letter-out .letter-small { transform: translateY(-45%); }
+
+    /* ---------------------------------------------------------
+       ข้อความ "ลองเปิดดูสิ" + ลูกศรชี้ขึ้นหาซอง (ลูกศรนี้นิ่ง ไม่เด้ง)
+       --------------------------------------------------------- */
+    .hint {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 18px;
+      rotate: -2deg;
+      transition: opacity 0.35s, visibility 0.35s;
+    }
+    .hint svg { width: 30px; height: 44px; margin-right: 10px; }
+    .hint p {
+      margin: 4px 0 0;
+      font-size: clamp(1.1rem, 5vw, 1.4rem);
+    }
+    .hint.is-hidden { opacity: 0; visibility: hidden; }
+
+    /* =========================================================
+       กระดาษจดหมาย (ใช้ร่วมกันทั้งจดหมายเล็กในซองและจดหมายใหญ่)
+       ขนาดทุกอย่างข้างในใช้หน่วย cqi (% ของความกว้างกระดาษ)
+       → ตัวอักษรย่อ/ขยายตามกระดาษ ไม่มีทางล้นแม้จอ 360px
+       ========================================================= */
+    .paper {
+      --lh: 13cqi; /* ระยะห่างเส้นบรรทัด = ความสูงบรรทัดของข้อความ */
+      container-type: inline-size;
+      position: absolute;
+      inset: 0;
+      background: var(--paper);
+      border: 2px solid var(--ink);
+      border-radius: 4px 7px 5px 3px; /* มุมไม่เท่ากัน ให้ดูเหมือนตัดเอง */
+      text-align: left;
+    }
+
+    /* เส้นบรรทัดจาง ๆ */
+    .paper::before {
+      content: '';
+      position: absolute;
+      left: 5cqi;
+      right: 5cqi;
+      top: 9cqi;
+      bottom: 6cqi;
+      background-image: repeating-linear-gradient(
+        to bottom,
+        transparent 0 calc(var(--lh) - 1.5px),
+        rgba(35, 48, 90, 0.14) calc(var(--lh) - 1.5px) var(--lh)
+      );
+    }
+
+    /* เส้นกั้นหน้ากระดาษสีชมพูจาง ๆ ด้านซ้าย */
+    .paper::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 12cqi;
+      width: 1.5px;
+      background: rgba(214, 59, 110, 0.28);
+    }
+
+    /* ข้อความบนจดหมาย: วางบนบรรทัดที่ 2-3 ชิดซ้ายแบบเขียนจริง */
+    .message {
+      position: absolute;
+      z-index: 1;
+      margin: 0;
+      left: 15cqi;
+      right: 5cqi;
+      top: calc(9cqi + var(--lh));
+      font-weight: 700;
+      font-size: 1.6rem;     /* fallback ถ้าเบราว์เซอร์ไม่รองรับ cqi */
+      font-size: 8.6cqi;
+      line-height: var(--lh);
+      rotate: -0.6deg;
+    }
+    /* ไม่ตัดคำกลางวลี ให้ขึ้นบรรทัดใหม่ตรงช่องว่างเท่านั้น */
+    .message span {
+      display: inline-block;
+      white-space: nowrap;
+    }
+    /* บรรทัดที่สองเยื้องเข้าไปเหมือนเขียนด้วยมือ */
+    .message span + span { margin-left: 16cqi; }
+
+    /* หัวใจดวงเล็ก ๆ บนกระดาษ */
+    .doodle {
+      position: absolute;
+      z-index: 1;
+      display: block;
+      overflow: visible;
+    }
+    .doodle path { stroke: var(--ink); stroke-width: 1.6; stroke-linejoin: round; }
+    .doodle--corner { top: 4cqi; right: 6cqi; width: 7cqi; rotate: 14deg; }
+    .doodle--corner path { fill: var(--berry); }
+    .doodle--sign {
+      top: calc(9cqi + var(--lh) * 3 + 3cqi);
+      right: 14cqi;
+      width: 6cqi;
+      rotate: -8deg;
+    }
+    .doodle--sign path { fill: var(--berry); }
+    .doodle--mint { bottom: 3.5cqi; left: 3cqi; width: 5cqi; rotate: -12deg; }
+    .doodle--mint path { fill: var(--mint); }
+
+    /* เทปกาวมิ้นต์แปะหัวกระดาษ ขอบหยักเหมือนฉีกเอง */
+    .tape {
+      position: absolute;
+      z-index: 2;
+      top: -3.5cqi;
+      left: 37cqi;
+      width: 26cqi;
+      height: 8cqi;
+      background: rgba(142, 216, 192, 0.75);
+      rotate: -3deg;
+      clip-path: polygon(0 8%, 4% 0, 96% 4%, 100% 14%, 97% 30%, 100% 50%, 97% 70%,
+                         100% 88%, 95% 100%, 4% 96%, 0 86%, 3% 66%, 0 48%, 3% 28%);
+    }
+
+    /* =========================================================
+       จดหมายใหญ่กลางจอ (เป็น <button> กดซ้ำเพื่อระเบิดอีกรอบได้)
+       ========================================================= */
+    .letter-stage {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+      pointer-events: none; /* ให้กดซองที่โผล่รอบ ๆ ได้ด้วย */
+    }
+    .letter-stage[hidden] { display: none; }
+
+    .letter-big {
+      position: relative;
+      pointer-events: auto;
+      width: min(88vw, 460px, calc((100svh - 120px) * 4 / 3));
+      aspect-ratio: 4 / 3;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+      rotate: -1.5deg;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* เงาโทนน้ำเงิน (ไม่ใช้เงาเทาสำเร็จรูป) */
+    .letter-big .paper {
+      box-shadow:
+        0 1px 0 rgba(35, 48, 90, 0.08),
+        0 22px 40px -14px rgba(35, 48, 90, 0.4);
+    }
+
+    /* =========================================================
+       ชั้นลูกโป่ง/หัวใจ: fixed เต็มจอ + overflow hidden
+       → ชิ้นที่พุ่งออกนอกจอจะไม่ทำให้หน้าเลื่อนข้าง
+       ========================================================= */
+    .burst-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      overflow: hidden;
+      pointer-events: none;
+      contain: strict;
+    }
+    .particle {
+      position: absolute;
+      left: 0;
+      top: 0;
+      will-change: transform, opacity;
+    }
+    .particle svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+    /* =========================================================
+       เคารพ prefers-reduced-motion:
+       ปิดลูกศรเด้ง ปิดซองสั่น ทำให้ transition เกือบทันที
+       (ส่วนการระเบิดจะเปลี่ยนเป็นหัวใจค่อย ๆ จางเข้า-ออกแบบอยู่กับที่ ใน JS)
+       ========================================================= */
+    @media (prefers-reduced-motion: reduce) {
+      .lid-arrow { animation: none; }
+      body.is-revealed .envelope:not(.is-opening) { animation: none; }
+      .env-flap,
+      .letter-small,
+      .hint {
+        transition-duration: 0.01s;
+        transition-delay: 0s;
+      }
+      .is-opening .env-seal { animation-duration: 0.01s; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="stage">
+
+    <!-- ===================== ฝา (หน้าแรก) ===================== -->
+    <header class="lid">
+      <h1 class="lid-title"><span>สวัสดี</span> <span>หนูดี</span></h1>
+      <p class="lid-sub">เลื่อนลงไปข้างล่างดูสิ</p>
+
+      <!-- ลูกศรชี้ลง วาดเส้นโค้งแบบมือ -->
+      <svg class="lid-arrow" viewBox="0 0 40 56" aria-hidden="true" fill="none"
+           stroke="#23305a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 4 C 17 16, 23 28, 20 46" />
+        <path d="M9 35 C 13 40, 17 44, 20 48 C 23 43, 27 39, 32 34" />
+      </svg>
+
+      <div class="lid-bar" aria-hidden="true"></div>
+      <div class="lid-shadow" aria-hidden="true"></div>
+    </header>
+
+    <!-- ===================== ฉากด้านล่าง (sticky) ===================== -->
+    <main class="scene">
+
+      <!-- ซองจดหมาย: ชื่อปุ่มสำหรับ screen reader อ่านจากข้อความ "ลองเปิดดูสิ" -->
+      <button class="envelope" type="button" aria-labelledby="hint-text">
+
+        <!-- ชั้น 0: ด้านในซอง (เห็นตอนเปิด) -->
+        <svg class="env-part env-back" viewBox="0 0 300 200" aria-hidden="true">
+          <path d="M10 4 H290 Q296 4 296 10 V190 Q296 196 290 196 H10 Q4 196 4 190 V10 Q4 4 10 4 Z"
+                fill="#f4dde5" stroke="#23305a" stroke-width="2.5"
+                vector-effect="non-scaling-stroke" />
+        </svg>
+
+        <!-- ชั้น 2: จดหมายเล็กในซอง (หน้าตาเหมือนจดหมายใหญ่ทุกอย่าง) -->
+        <div class="letter-small" aria-hidden="true">
+          <div class="paper">
+            <span class="tape"></span>
+            <svg class="doodle doodle--corner" viewBox="0 0 24 22"><path d="M12 20.5C12 20.5 1.8 14 1.8 7.4 1.8 4.1 4.3 1.8 7.2 1.8c2 0 3.8 1.1 4.8 2.8 1-1.7 2.8-2.8 4.8-2.8 2.9 0 5.4 2.3 5.4 5.6C22.2 14 12 20.5 12 20.5Z"/></svg>
+            <p class="message"><span>ไม่ต้องเครียดนะ</span> <span>หนูดี</span></p>
+            <svg class="doodle doodle--sign" viewBox="0 0 24 22"><path d="M12 20.5C12 20.5 1.8 14 1.8 7.4 1.8 4.1 4.3 1.8 7.2 1.8c2 0 3.8 1.1 4.8 2.8 1-1.7 2.8-2.8 4.8-2.8 2.9 0 5.4 2.3 5.4 5.6C22.2 14 12 20.5 12 20.5Z"/></svg>
+            <svg class="doodle doodle--mint" viewBox="0 0 24 22"><path d="M12 20.5C12 20.5 1.8 14 1.8 7.4 1.8 4.1 4.3 1.8 7.2 1.8c2 0 3.8 1.1 4.8 2.8 1-1.7 2.8-2.8 4.8-2.8 2.9 0 5.4 2.3 5.4 5.6C22.2 14 12 20.5 12 20.5Z"/></svg>
+          </div>
+        </div>
+
+        <!-- ชั้น 3: กระเป๋าหน้าซอง (รูปตัว V) + หัวใจเหลืองดวงเล็กที่มุม -->
+        <svg class="env-part env-pocket" viewBox="0 0 300 200" aria-hidden="true">
+          <path d="M4 14 Q78 68 150 120 Q222 68 296 14 V190 Q296 196 290 196 H10 Q4 196 4 190 Z"
+                fill="#fffdf8" stroke="#23305a" stroke-width="2.5" stroke-linejoin="round"
+                vector-effect="non-scaling-stroke" />
+          <path d="M8 192 Q70 150 128 112" fill="none" stroke="#23305a" stroke-opacity="0.28"
+                stroke-width="2" stroke-linecap="round" vector-effect="non-scaling-stroke" />
+          <path d="M292 192 Q230 150 172 112" fill="none" stroke="#23305a" stroke-opacity="0.28"
+                stroke-width="2" stroke-linecap="round" vector-effect="non-scaling-stroke" />
+          <path transform="translate(250 158) rotate(12)"
+                d="M12 20.5C12 20.5 1.8 14 1.8 7.4 1.8 4.1 4.3 1.8 7.2 1.8c2 0 3.8 1.1 4.8 2.8 1-1.7 2.8-2.8 4.8-2.8 2.9 0 5.4 2.3 5.4 5.6C22.2 14 12 20.5 12 20.5Z"
+                fill="#ffd966" stroke="#23305a" stroke-width="1.8" stroke-linejoin="round" />
+        </svg>
+
+        <!-- ชั้น 4: ฝาซอง (สองหน้า) -->
+        <div class="env-part env-flap" aria-hidden="true">
+          <!-- ด้านนอก -->
+          <svg class="flap-face flap-face--outside" viewBox="0 0 300 200">
+            <path d="M8 4 H292 Q297 4 294 9 Q220 72 150 124 Q80 72 6 9 Q3 4 8 4 Z"
+                  fill="#fffdf8" stroke="#23305a" stroke-width="2.5" stroke-linejoin="round"
+                  vector-effect="non-scaling-stroke" />
+          </svg>
+          <!-- ด้านใน: ซับในลายจุดมิ้นต์-เหลือง (เห็นตอนฝาพับขึ้น) -->
+          <svg class="flap-face flap-face--inside" viewBox="0 0 300 200">
+            <defs>
+              <pattern id="liner" width="22" height="22" patternUnits="userSpaceOnUse">
+                <circle cx="5" cy="5" r="2.6" fill="#8ed8c0" />
+                <circle cx="16" cy="16" r="2.6" fill="#ffd966" />
+              </pattern>
+            </defs>
+            <path d="M8 4 H292 Q297 4 294 9 Q220 72 150 124 Q80 72 6 9 Q3 4 8 4 Z" fill="#d9ecfb" />
+            <path d="M8 4 H292 Q297 4 294 9 Q220 72 150 124 Q80 72 6 9 Q3 4 8 4 Z"
+                  fill="url(#liner)" stroke="#23305a" stroke-width="2.5" stroke-linejoin="round"
+                  vector-effect="non-scaling-stroke" />
+          </svg>
+        </div>
+
+        <!-- ชั้น 5: ตราประทับครั่งรูปหัวใจ (ขอบไม่กลมเป๊ะเหมือนครั่งจริง) -->
+        <span class="env-seal" aria-hidden="true">
+          <svg viewBox="0 0 60 60">
+            <path d="M30 3 C40 2 47 8 52 13 C58 19 58 27 57 33 C57 41 53 49 46 53 C40 57 33 58 26 57 C18 56 10 52 6 45 C2 38 2 30 4 23 C6 15 12 8 19 5 C23 3 27 3 30 3 Z"
+                  fill="#d63b6e" stroke="#23305a" stroke-width="2" />
+            <circle cx="30" cy="30" r="19" fill="none" stroke="#fffdf8" stroke-opacity="0.5"
+                    stroke-width="1.5" stroke-dasharray="3 3" />
+            <path transform="translate(18 19.5)"
+                  d="M12 20.5C12 20.5 1.8 14 1.8 7.4 1.8 4.1 4.3 1.8 7.2 1.8c2 0 3.8 1.1 4.8 2.8 1-1.7 2.8-2.8 4.8-2.8 2.9 0 5.4 2.3 5.4 5.6C22.2 14 12 20.5 12 20.5Z"
+                  fill="#ffe3ea" />
+          </svg>
+        </span>
+      </button>
+
+      <!-- ลูกศรชี้ขึ้นหาซอง + ข้อความชวนเปิด -->
+      <div class="hint">
+        <svg viewBox="0 0 40 56" aria-hidden="true" fill="none" stroke="#23305a"
+             stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 52 C 23 40, 17 28, 20 10" />
+          <path d="M9 21 C 13 16, 17 12, 20 8 C 23 13, 27 17, 32 22" />
+        </svg>
+        <p id="hint-text">ลองเปิดดูสิ</p>
+      </div>
+
+      <!-- จดหมายใหญ่กลางจอ (ซ่อนไว้จนกว่าจะเปิดซอง) -->
+      <div class="letter-stage" hidden>
+        <button class="letter-big" type="button">
+          <span class="paper">
+            <span class="tape" aria-hidden="true"></span>
+            <svg class="doodle doodle--corner" viewBox="0 0 24 22" aria-hidden="true"><path d="M12 20.5C12 20.5 1.8 14 1.8 7.4 1.8 4.1 4.3 1.8 7.2 1.8c2 0 3.8 1.1 4.8 2.8 1-1.7 2.8-2.8 4.8-2.8 2.9 0 5.4 2.3 5.4 5.6C22.2 14 12 20.5 12 20.5Z"/></svg>
+            <span class="message"><span>ไม่ต้องเครียดนะ</span> <span>หนูดี</span></span>
+            <svg class="doodle doodle--sign" viewBox="0 0 24 22" aria-hidden="true"><path d="M12 20.5C12 20.5 1.8 14 1.8 7.4 1.8 4.1 4.3 1.8 7.2 1.8c2 0 3.8 1.1 4.8 2.8 1-1.7 2.8-2.8 4.8-2.8 2.9 0 5.4 2.3 5.4 5.6C22.2 14 12 20.5 12 20.5Z"/></svg>
+            <svg class="doodle doodle--mint" viewBox="0 0 24 22" aria-hidden="true"><path d="M12 20.5C12 20.5 1.8 14 1.8 7.4 1.8 4.1 4.3 1.8 7.2 1.8c2 0 3.8 1.1 4.8 2.8 1-1.7 2.8-2.8 4.8-2.8 2.9 0 5.4 2.3 5.4 5.6C22.2 14 12 20.5 12 20.5Z"/></svg>
+          </span>
+        </button>
+      </div>
+    </main>
+
+    <!-- พื้นที่ให้เลื่อน (ทำให้ฝาเลื่อนพ้นจอได้หมดรวมทั้งเงา) -->
+    <div class="runway" aria-hidden="true"></div>
+  </div>
+
+  <!-- ชั้นสำหรับลูกโป่งและหัวใจที่ระเบิดออกมา -->
+  <div class="burst-layer" aria-hidden="true"></div>
+
+  <script>
+  (() => {
+    'use strict';
+
+    /* =========================================================
+       ตัวช่วยทั่วไป
+       ========================================================= */
+    const reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const isReduced = () => reduceMotionQuery.matches;
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const rand = (min, max) => min + Math.random() * (max - min);
+    const pick = (list) => list[Math.floor(Math.random() * list.length)];
+
+    // ถ้าผู้ใช้ตั้งลดการเคลื่อนไหว ให้รอแค่สั้น ๆ ระหว่างแต่ละจังหวะ
+    const timing = (ms) => (isReduced() ? 30 : ms);
+
+    // เส้นรูปหัวใจ (ใช้ร่วมกันทุกที่)
+    const HEART_PATH =
+      'M12 20.5C12 20.5 1.8 14 1.8 7.4 1.8 4.1 4.3 1.8 7.2 1.8c2 0 3.8 1.1 4.8 2.8 ' +
+      '1-1.7 2.8-2.8 4.8-2.8 2.9 0 5.4 2.3 5.4 5.6C22.2 14 12 20.5 12 20.5Z';
+
+    /* =========================================================
+       ส่วนที่ 1: ฝา (scroll-driven)
+       ตัวฝาเลื่อนด้วย native scroll อยู่แล้ว (ลื่นที่สุด)
+       JS มีหน้าที่แค่คำนวณว่ายกฝาไปกี่ % (--lift) เพื่อปรับความยาวเงา
+       และบอกว่าเห็นซองแล้วหรือยัง (เพื่อเริ่มให้ซองสั่น)
+       ========================================================= */
+    const lid = document.querySelector('.lid');
+    let lidFrameQueued = false;
+
+    function updateLid() {
+      lidFrameQueued = false;
+      const lidHeight = lid.offsetHeight || 1;
+      const progress = Math.min(Math.max(window.scrollY / lidHeight, 0), 1);
+      lid.style.setProperty('--lift', progress.toFixed(3));
+      document.body.classList.toggle('is-revealed', progress > 0.7);
+    }
+
+    // อัปเดตไม่เกิน 1 ครั้งต่อเฟรม (กันกระตุก)
+    window.addEventListener('scroll', () => {
+      if (!lidFrameQueued) {
+        lidFrameQueued = true;
+        requestAnimationFrame(updateLid);
+      }
+    }, { passive: true });
+    window.addEventListener('resize', updateLid);
+
+    // เปิดหน้าใหม่ให้เริ่มจากฝาเสมอ (ไม่ให้เบราว์เซอร์จำตำแหน่งเดิม ซึ่งจะทำให้เสียเซอร์ไพรส์)
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    window.scrollTo(0, 0);
+    updateLid();
+
+    /* =========================================================
+       ส่วนที่ 2: ซองจดหมาย
+       สถานะ: closed (ยังไม่เปิด) → opening (กำลังเล่นแอนิเมชัน) → open (เปิดแล้ว)
+       ========================================================= */
+    const envelope = document.querySelector('.envelope');
+    const smallLetter = document.querySelector('.letter-small');
+    const letterStage = document.querySelector('.letter-stage');
+    const bigLetter = document.querySelector('.letter-big');
+    const hint = document.querySelector('.hint');
+    let state = 'closed';
+
+    // <button> รองรับ Enter / Space จากคีย์บอร์ดอยู่แล้ว จึงฟังแค่ click
+    envelope.addEventListener('click', () => {
+      if (state === 'closed') openEnvelope();
+      else if (state === 'open') burstFrom(mouthOf(envelope));
+    });
+
+    bigLetter.addEventListener('click', () => {
+      if (state === 'open') burstFrom(pointIn(bigLetter, 0.5, 0.35));
+    });
+
+    // ตำแหน่งปากซอง (จุดที่ลูกโป่ง/หัวใจพุ่งออกมา)
+    function mouthOf(el) {
+      return pointIn(el, 0.5, 0.2);
+    }
+    function pointIn(el, fx, fy) {
+      const r = el.getBoundingClientRect();
+      return { x: r.left + r.width * fx, y: r.top + r.height * fy };
+    }
+
+    // ถ้ากดซองตอนที่ฝายังบังอยู่บางส่วน ให้เลื่อนฝาออกให้สุดก่อน
+    function revealScene() {
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      if (window.scrollY < maxScroll - 2) {
+        window.scrollTo({ top: maxScroll, behavior: isReduced() ? 'auto' : 'smooth' });
+      }
+    }
+
+    // ลำดับการเปิดซอง (หัวใจของหน้านี้)
+    async function openEnvelope() {
+      state = 'opening';
+      revealScene();
+
+      // 1) ตราประทับหาย + ฝาซองพับเปิด
+      envelope.classList.add('is-opening');
+      hint.classList.add('is-hidden');
+      await wait(timing(720));
+
+      // 2) ฝาไปอยู่หลังจดหมาย + จดหมายค่อย ๆ เลื่อนขึ้นจากซอง
+      envelope.classList.add('is-letter-out');
+      await wait(timing(260));
+
+      // 3) ลูกโป่งกับหัวใจระเบิดออกจากซอง
+      burstFrom(mouthOf(envelope));
+      await wait(timing(700));
+
+      // 4) จดหมายขยายขึ้นมากลางจอ
+      await expandLetter();
+
+      state = 'open';
+      // ย้าย focus ไปที่จดหมาย: screen reader จะอ่านข้อความ และกด Enter ซ้ำเพื่อระเบิดได้
+      bigLetter.focus({ preventScroll: true });
+    }
+
+    /* ---------------------------------------------------------
+       ขยายจดหมาย ด้วยเทคนิค FLIP
+       - วัดตำแหน่งจดหมายเล็กในซอง (First)
+       - แสดงจดหมายใหญ่ที่ตำแหน่งสุดท้าย (Last)
+       - ย้อนจดหมายใหญ่กลับไปทับจดหมายเล็กพอดี (Invert)
+       - แล้วเล่นแอนิเมชันกลับสู่ตำแหน่งจริง (Play)
+       clip-path ตอนเริ่มเป็นรูปตัว V ตรงกับปากกระเป๋าซอง
+       ส่วนที่ยังอยู่ในซองจึง "โผล่" ออกมา ไม่กระโดดขึ้นมาทั้งแผ่น
+       --------------------------------------------------------- */
+    // ค่าคำนวณจากรูปทรงซองใน SVG: ขอบ V ตัดขอบซ้าย/ขวาของจดหมายที่ ~57% และกลางที่ ~105%
+    const CLIP_IN_ENVELOPE = 'polygon(0% -40%, 100% -40%, 100% 57%, 50% 105%, 0% 57%)';
+    // หลังพ้นซองแล้ว เปิดกรอบกว้างพอให้เงาและเทปกาวไม่ถูกตัด
+    const CLIP_FREE = 'polygon(-20% -40%, 120% -40%, 120% 150%, 50% 150%, -20% 150%)';
+
+    function expandLetter() {
+      const from = smallLetter.getBoundingClientRect();
+      letterStage.hidden = false;
+      const to = bigLetter.getBoundingClientRect();
+      smallLetter.style.visibility = 'hidden';
+
+      let animation;
+
+      if (isReduced()) {
+        // ลดการเคลื่อนไหว: แค่ค่อย ๆ ปรากฏ
+        animation = bigLetter.animate(
+          [{ opacity: 0 }, { opacity: 1 }],
+          { duration: 250, easing: 'ease-out' }
+        );
+      } else {
+        const scale = from.width / bigLetter.offsetWidth;
+        const dx = (from.left + from.width / 2) - (to.left + to.width / 2);
+        const dy = (from.top + from.height / 2) - (to.top + to.height / 2);
+
+        animation = bigLetter.animate(
+          [
+            {
+              offset: 0,
+              transform: `translate(${dx}px, ${dy}px) scale(${scale})`,
+              rotate: '0deg',
+              clipPath: CLIP_IN_ENVELOPE,
+            },
+            // ช่วงต้น: ปลดส่วนที่อยู่ในซองให้โผล่ออกมาก่อน
+            { offset: 0.3, clipPath: CLIP_FREE },
+            {
+              offset: 1,
+              transform: 'translate(0px, 0px) scale(1)',
+              rotate: '-1.5deg',
+              clipPath: CLIP_FREE,
+            },
+          ],
+          // เส้นโค้งที่เลยเป้าหมายนิดหน่อย ให้จดหมาย "ป๊อป" ขึ้นมา
+          { duration: 900, easing: 'cubic-bezier(0.3, 1.25, 0.5, 1)' }
+        );
+      }
+
+      return animation.finished.catch(() => {});
+    }
+
+    /* =========================================================
+       ส่วนที่ 3: ลูกโป่งและหัวใจระเบิด
+       ใช้ requestAnimationFrame วงเดียวขยับทุกชิ้น
+       ขยับด้วย transform/opacity เท่านั้นเพื่อให้ลื่นบนมือถือ
+       ========================================================= */
+    const layer = document.querySelector('.burst-layer');
+    const particles = [];
+    let rafId = 0;
+    let lastTime = 0;
+
+    const HEART_COLORS = ['#d63b6e', '#ff8fb1', '#8ed8c0', '#ffd966', '#fffdf8', '#9cc9f0'];
+    const BALLOON_COLORS = ['#d63b6e', '#8ed8c0', '#ffd966', '#ff9fbd', '#9cc9f0'];
+
+    const heartSVG = (color) =>
+      `<svg viewBox="0 0 24 22"><path d="${HEART_PATH}" fill="${color}" ` +
+      `stroke="#23305a" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+
+    // ลูกโป่ง: ตัวลูกโป่ง + ปมผูก + เชือกหยัก + แสงสะท้อน
+    const balloonSVG = (color) => `
+      <svg viewBox="0 0 60 120">
+        <path d="M30 78 C 25 88, 35 96, 30 106 S 27 114, 31 119" fill="none"
+              stroke="#23305a" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M30 4 C14 4 4 17 4 33 C4 52 19 67 30 71 C41 67 56 52 56 33 C56 17 46 4 30 4 Z"
+              fill="${color}" stroke="#23305a" stroke-width="2"/>
+        <path d="M26 77 L30 70 L34 77 Z" fill="${color}" stroke="#23305a"
+              stroke-width="1.6" stroke-linejoin="round"/>
+        <path d="M15 22 C 18 15, 23 12, 28 11" fill="none" stroke="#fffdf8"
+              stroke-width="3.5" stroke-linecap="round" opacity="0.8"/>
+      </svg>`;
+
+    // สร้าง element ของชิ้นส่วนหนึ่งชิ้น
+    function createParticleElement(html, sizePx) {
+      const el = document.createElement('div');
+      el.className = 'particle';
+      el.style.width = sizePx + 'px';
+      el.style.opacity = '0';
+      el.innerHTML = html;
+      layer.appendChild(el);
+      return el;
+    }
+
+    // กันชิ้นส่วนเยอะเกินถ้ากดรัว ๆ (ลบชิ้นเก่าสุดทิ้ง)
+    function trimParticles(max) {
+      while (particles.length > max) {
+        const oldest = particles.shift();
+        oldest.el.remove();
+      }
+    }
+
+    function burstFrom(origin) {
+      if (isReduced()) {
+        softHearts(origin);
+        return;
+      }
+
+      trimParticles(140);
+
+      // จอเล็กให้พุ่งสั้นลง ไม่หลุดจอหมด
+      const reach = Math.min(window.innerWidth, 560) / 480;
+
+      // หัวใจ: พุ่งออกเป็น 2 วง (วงใน/วงนอก) แล้วค่อย ๆ ปลิวร่วง
+      const HEART_COUNT = 30;
+      for (let i = 0; i < HEART_COUNT; i++) {
+        const ring = i % 3 === 0 ? 0.62 : 1;
+        const angle = (i / HEART_COUNT) * Math.PI * 2 + rand(-0.1, 0.1);
+        const speed = rand(620, 760) * reach * ring;
+        const size = rand(14, 28);
+        particles.push({
+          kind: 'heart',
+          el: createParticleElement(heartSVG(pick(HEART_COLORS)), size),
+          x: origin.x,
+          y: origin.y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 120 * reach, // ดันขึ้นนิดหน่อย
+          rot: rand(-30, 30),
+          vr: rand(-240, 240),
+          phase: rand(0, Math.PI * 2),
+          life: rand(2.6, 3.4),
+          age: 0,
+        });
+      }
+
+      // ลูกโป่ง: กระจายซ้าย-ขวาจากปากซอง แล้วลอยขึ้นพ้นจอ (ปล่อยทีละลูกห่างกันนิดนึง)
+      const BALLOON_COUNT = 8;
+      for (let i = 0; i < BALLOON_COUNT; i++) {
+        const spread = (i / (BALLOON_COUNT - 1) - 0.5) * 2; // -1 ถึง 1
+        const size = rand(40, 60);
+        particles.push({
+          kind: 'balloon',
+          el: createParticleElement(balloonSVG(pick(BALLOON_COLORS)), size),
+          size,
+          x: origin.x + spread * 20,
+          y: origin.y + rand(-6, 10),
+          vx: spread * rand(120, 200) * reach,
+          vy: rand(-300, -180),
+          phase: rand(0, Math.PI * 2),
+          age: -i * 0.06 - rand(0, 0.05), // อายุติดลบ = ยังไม่ปล่อย
+        });
+      }
+
+      if (!rafId) {
+        lastTime = performance.now();
+        rafId = requestAnimationFrame(tick);
+      }
+    }
+
+    // ฟังก์ชันเด้งเกินแล้วกลับ ใช้ตอนชิ้นส่วนเพิ่งโผล่
+    function easeOutBack(t) {
+      const c1 = 1.70158;
+      const c3 = c1 + 1;
+      return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+    }
+
+    // ลูปขยับทุกชิ้นในแต่ละเฟรม
+    function tick(now) {
+      // จำกัด dt ไว้ กันชิ้นส่วนกระโดดเมื่อสลับแท็บกลับมา
+      const dt = Math.min((now - lastTime) / 1000, 1 / 30);
+      lastTime = now;
+      const screenBottom = window.innerHeight + 60;
+
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.age += dt;
+        if (p.age < 0) continue; // ลูกโป่งที่ยังไม่ถึงคิวปล่อย
+
+        let drawX = p.x;
+        let rotation = 0;
+        let scale = 1;
+        let opacity = 1;
+        let finished = false;
+
+        if (p.kind === 'heart') {
+          // แรงต้านอากาศทำให้หยุดพุ่งเป็นวง แล้วแรงโน้มถ่วงเบา ๆ ดึงให้ค่อย ๆ ร่วง
+          const drag = Math.exp(-3 * dt);
+          p.vx *= drag;
+          p.vy = p.vy * drag + 320 * dt;
+          p.vr *= drag;
+          p.x += p.vx * dt + Math.sin(p.age * 4 + p.phase) * 22 * dt * Math.min(p.age, 1);
+          p.y += p.vy * dt;
+          p.rot += p.vr * dt;
+
+          drawX = p.x;
+          rotation = p.rot;
+          scale = easeOutBack(Math.min(p.age / 0.22, 1));
+          opacity = Math.max(0, Math.min(1, (p.life - p.age) / 0.7)); // จางหายช่วงท้าย
+          finished = p.age >= p.life || p.y > screenBottom;
+        } else {
+          // ลูกโป่ง: เร่งขึ้นเรื่อย ๆ (จำกัดความเร็ว) + โยกซ้ายขวาเบา ๆ
+          p.vy = Math.max(p.vy - 110 * dt, -480);
+          p.vx *= Math.exp(-1.2 * dt);
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+
+          const sway = Math.sin(p.age * 1.7 + p.phase);
+          drawX = p.x + sway * 14;
+          rotation = sway * 9;
+          scale = easeOutBack(Math.min(p.age / 0.35, 1));
+          finished = p.y < -p.size * 2.2; // พ้นขอบบนจอแล้ว
+        }
+
+        if (finished) {
+          p.el.remove();
+          particles.splice(i, 1);
+          continue;
+        }
+
+        p.el.style.opacity = opacity;
+        p.el.style.transform =
+          `translate3d(${drawX}px, ${p.y}px, 0) translate(-50%, -50%) ` +
+          `rotate(${rotation}deg) scale(${scale})`;
+      }
+
+      rafId = particles.length ? requestAnimationFrame(tick) : 0;
+    }
+
+    // แบบลดการเคลื่อนไหว: หัวใจรอบ ๆ ค่อย ๆ จางเข้าแล้วจางออก ไม่ขยับตำแหน่ง
+    function softHearts(origin) {
+      const COUNT = 8;
+      for (let i = 0; i < COUNT; i++) {
+        const angle = (i / COUNT) * Math.PI * 2;
+        const radius = rand(70, 130);
+        const size = rand(16, 24);
+        const el = createParticleElement(heartSVG(pick(HEART_COLORS)), size);
+        el.style.transform =
+          `translate3d(${origin.x + Math.cos(angle) * radius}px, ` +
+          `${origin.y + Math.sin(angle) * radius}px, 0) translate(-50%, -50%)`;
+        el.animate(
+          [{ opacity: 0 }, { opacity: 1, offset: 0.3 }, { opacity: 0 }],
+          { duration: 1600, easing: 'ease-in-out' }
+        ).finished.then(() => el.remove());
+      }
+    }
+  })();
+  </script>
+</body>
+</html>
